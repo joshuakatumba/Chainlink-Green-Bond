@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoBridge | RWA Liquidity Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at top right, #064e3b, #020617);
+            min-height: 100vh;
+            color: #ecfdf5;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .green-glow {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        @keyframes pulse-soft {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .loading-pulse {
+            animation: pulse-soft 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <!-- Header -->
+    <nav class="max-w-6xl mx-auto flex justify-between items-center mb-12">
+        <div class="flex items-center gap-2">
+            <div
+                class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight">EcoBridge <span class="text-emerald-400 font-light">RWA</span>
+            </h1>
+        </div>
+        <button id="walletBtn"
+            class="glass px-6 py-2 rounded-full hover:bg-emerald-500/20 transition-all border border-emerald-500/30">
+            Connect Wallet
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <!-- Left: Interaction Panel -->
+        <section class="flex flex-col gap-6">
+            <div class="glass p-8 rounded-3xl green-glow">
+                <h2 class="text-xl font-semibold mb-2">Stake Green Bond</h2>
+                <p class="text-emerald-200/60 text-sm mb-6">Enter your tokenized RWA ID to fetch real-time satellite
+                    environmental impact data via Chainlink Functions.</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-widest text-emerald-500 font-bold mb-2">Bond
+                            Asset ID</label>
+                        <input id="bondInput" type="text" placeholder="e.g. RWA-AMZN-2024-X"
+                            class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 transition-colors text-emerald-100">
+                    </div>
+                    <button id="verifyBtn"
+                        class="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20">
+                        Verify Impact & Value
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lending Info -->
+            <div id="lendingPanel"
+                class="glass p-8 rounded-3xl opacity-30 transition-opacity duration-500 pointer-events-none">
+                <h3 class="text-lg font-medium mb-4">Credit Line Available</h3>
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <span class="text-4xl font-bold" id="loanAmount">$0.00</span>
+                        <span class="text-emerald-500 ml-2 text-sm">USDC</span>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-emerald-200/50 uppercase">LTV Ratio</p>
+                        <p class="font-mono" id="ltvRatio">0%</p>
+                    </div>
+                </div>
+                <button id="loanBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all">
+                    Borrow Cross-Chain (CCIP)
+                </button>
+            </div>
+        </section>
+
+        <!-- Right: Status / Oracle Simulation -->
+        <section class="glass p-8 rounded-3xl flex flex-col">
+            <h2 class="text-xl font-semibold mb-6">Chainlink Oracle Workflow</h2>
+
+            <div class="flex-grow space-y-8 relative">
+                <!-- Step 1 -->
+                <div class="flex gap-4 items-start">
+                    <div id="step1-icon"
+                        class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center shrink-0">1
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-emerald-400">Fetch RWA Metadata</h4>
+                        <p class="text-sm text-emerald-200/40">Retrieving forestation data from Copernicus API via
+                            Functions.</p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="flex gap-4 items-start">
+                    <div id="step2-icon"
+                        class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center shrink-0">2
+                    </div>
+                    <div>
+                        <h4 class="font-medium">Verify Proof of Reserve</h4>
+                        <p class="text-sm text-emerald-200/40">Confirming 1:1 asset backing on-chain.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="flex gap-4 items-start">
+                    <div id="step3-icon"
+                        class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center shrink-0">3
+                    </div>
+                    <div>
+                        <h4 class="font-medium">CCIP Cross-Chain Route</h4>
+                        <p class="text-sm text-emerald-200/40">Authorizing minting of USDC on Base/Arbitrum.</p>
+                    </div>
+                </div>
+
+                <!-- Visual Meter -->
+                <div class="mt-auto pt-8">
+                    <div class="bg-black/40 p-4 rounded-2xl border border-emerald-500/20">
+                        <div class="flex justify-between text-xs mb-2">
+                            <span>SATELLITE CONFIDENCE</span>
+                            <span id="confLevel">0%</span>
+                        </div>
+                        <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                            <div id="confBar" class="h-full bg-emerald-500 transition-all duration-1000"
+                                style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast"
+        class="fixed bottom-8 right-8 glass p-4 rounded-2xl translate-y-24 transition-transform duration-300 border-emerald-500/50 flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
+        <span id="toastMsg" class="text-sm">Action initiated...</span>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            connected: false,
+            address: '',
+            verifying: false
+        };
+
+        const walletBtn = document.getElementById('walletBtn');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const bondInput = document.getElementById('bondInput');
+        const lendingPanel = document.getElementById('lendingPanel');
+        const toast = document.getElementById('toast');
+
+        // Wallet Connection
+        walletBtn.onclick = async () => {
+            if (window.ethereum) {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                state.address = accounts[0];
+                state.connected = true;
+                walletBtn.innerText = state.address.slice(0, 6) + '...' + state.address.slice(-4);
+                showToast("Wallet Connected");
+            } else {
+                showToast("MetaMask not found", "error");
+            }
+        };
+
+        // Prototype Logic (Simulating Chainlink Oracles)
+        verifyBtn.onclick = async () => {
+            if (!bondInput.value) return showToast("Enter a Bond ID first");
+            if (state.verifying) return;
+
+            state.verifying = true;
+            verifyBtn.innerText = "Querying Oracles...";
+            verifyBtn.classList.add('loading-pulse');
+
+            // Simulate Chainlink Function Flow
+            await runStep(1, 1500, "98.2%");
+            await runStep(2, 2000, "100%");
+
+            // UI Update
+            const impactScore = Math.floor(Math.random() * 25) + 70; // 70-95
+            const loan = (impactScore * 125).toLocaleString();
+
+            document.getElementById('loanAmount').innerText = `$${loan}`;
+            document.getElementById('ltvRatio').innerText = `${impactScore - 10}%`;
+
+            lendingPanel.style.opacity = "1";
+            lendingPanel.style.pointerEvents = "auto";
+
+            verifyBtn.innerText = "Asset Verified ✅";
+            verifyBtn.classList.remove('loading-pulse');
+            state.verifying = false;
+            showToast("Oracle validation complete");
+        };
+
+        // Loan Simulation (CCIP)
+        document.getElementById('loanBtn').onclick = () => {
+            showToast("Initiating CCIP Message...");
+            runStep(3, 2500, "SENT");
+            setTimeout(() => {
+                showToast("Success! $USDC minted on Arbitrum Sepolia.");
+            }, 3000);
+        };
+
+        // Helper: Simulate Oracle Steps
+        async function runStep(stepNum, duration, val) {
+            const icon = document.getElementById(`step${stepNum}-icon`);
+            icon.classList.add('bg-emerald-500/20', 'border-emerald-500', 'text-emerald-500', 'loading-pulse');
+
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    icon.classList.remove('loading-pulse');
+                    icon.innerHTML = '✓';
+                    if (stepNum === 1) {
+                        document.getElementById('confBar').style.width = "85%";
+                        document.getElementById('confLevel').innerText = val;
+                    }
+                    resolve();
+                }, duration);
+            });
+        }
+
+        function showToast(msg) {
+            document.getElementById('toastMsg').innerText = msg;
+            toast.style.transform = "translateY(0)";
+            setTimeout(() => {
+                toast.style.transform = "translateY(150px)";
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

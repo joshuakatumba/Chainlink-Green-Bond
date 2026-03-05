@@ -1,0 +1,16 @@
+{
+    "name": "chainlink-project",
+    "version": "1.0.0",
+    "description": "Chainlink RWA and CCIP Project",
+    "scripts": {
+        "workflow:verify": "ts-node workflows/rwa-verification.ts"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    },
+    "dependencies": {
+        "ethers": "^5.7.2"
+    }
+}
