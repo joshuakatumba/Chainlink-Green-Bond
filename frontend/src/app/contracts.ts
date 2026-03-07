@@ -28,6 +28,14 @@ export const CROSS_CHAIN_RWA_ABI = [
         ],
         outputs: [{ name: 'messageId', type: 'bytes32' }],
     },
+    {
+        name: 'MessageSent',
+        type: 'event',
+        inputs: [
+            { name: 'messageId', type: 'bytes32', indexed: true },
+            { name: 'destinationChainSelector', type: 'uint64', indexed: true }
+        ]
+    }
 ] as const;
 
 // ──── Deployed addresses (replace with real ones after deployment) ────
