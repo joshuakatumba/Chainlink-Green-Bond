@@ -1,4 +1,5 @@
 // Contract ABIs and addresses for UniqueRWA and CrossChainRWA
+import { getAddress } from 'viem';
 
 // ──── UniqueRWA (ERC-721 + Chainlink Functions) ────
 export const UNIQUE_RWA_ABI = [
@@ -66,13 +67,44 @@ export const CROSS_CHAIN_RWA_ABI = [
     }
 ] as const;
 
+// ──── ProtocolTreasury (Business Model / Fees) ────
+export const PROTOCOL_TREASURY_ABI = [
+    {
+        name: 'payVerificationFee',
+        type: 'function',
+        stateMutability: 'payable',
+        inputs: [{ name: 'assetId', type: 'string' }],
+        outputs: [],
+    },
+    {
+        name: 'verificationFee',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        name: 'FeePaid',
+        type: 'event',
+        inputs: [
+            { name: 'payer', type: 'address', indexed: true },
+            { name: 'assetId', type: 'string', indexed: false },
+            { name: 'amount', type: 'uint256', indexed: false },
+        ]
+    }
+] as const;
+
 // ──── Deployed addresses (normalized to handle Vercel env whitespace) ────
 
 const normalizeAddress = (addr: string | undefined, fallback: `0x${string}`): `0x${string}` => {
-    if (!addr) return fallback;
-    const cleaned = addr.trim();
-    if (!cleaned.startsWith('0x')) return fallback;
-    return cleaned as `0x${string}`;
+    try {
+        if (!addr) return getAddress(fallback);
+        const cleaned = addr.trim();
+        if (!cleaned.startsWith('0x')) return getAddress(fallback);
+        return getAddress(cleaned);
+    } catch {
+        return getAddress(fallback);
+    }
 };
 
 export const UNIQUE_RWA_ADDRESS = normalizeAddress(
@@ -88,6 +120,11 @@ export const CROSS_CHAIN_RWA_ADDRESS = normalizeAddress(
 export const CROSS_CHAIN_RECEIVER_ADDRESS = normalizeAddress(
     process.env.NEXT_PUBLIC_CROSS_CHAIN_RECEIVER_ADDRESS,
     '0x68d809e7D6a6ADbf08341Fa08F98C276De6f2f48'
+);
+
+export const PROTOCOL_TREASURY_ADDRESS = normalizeAddress(
+    process.env.NEXT_PUBLIC_PROTOCOL_TREASURY_ADDRESS,
+    '0xcf51d83075Edd4Cb0cA8Ec4c0925Bef9bbdE0c5f'
 );
 
 // Arbitrum Sepolia CCIP chain selector

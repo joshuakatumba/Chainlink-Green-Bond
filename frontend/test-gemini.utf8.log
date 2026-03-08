@@ -1,0 +1,43 @@
+﻿cmd.exe : [FAIL] gemini-1.5-flash: {"erro
+r":{"code":404,"message":"models/gemini-1
+.5-flash is not found for API version 
+v1beta, or is not supported for 
+generateContent. Call ListModels to see 
+the list of available models and their 
+supported 
+methods.","status":"NOT_FOUND"}}
+At line:1 char:1
++ cmd.exe /c node test-gemini.mjs > 
+test-gemini.log 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecifi 
+   ed: ([FAIL] gemini-1...":"NOT_FOUND"  
+  }}:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeComm 
+   andError
+ 
+[PASS] gemini-2.5-flash: ok
+[FAIL] gemini-1.5-flash-latest: {"error":
+{"code":404,"message":"models/gemini-1.5-
+flash-latest is not found for API 
+version v1beta, or is not supported for 
+generateContent. Call ListModels to see 
+the list of available models and their 
+supported 
+methods.","status":"NOT_FOUND"}}
+[FAIL] gemini-1.5-pro: {"error":{"code":4
+04,"message":"models/gemini-1.5-pro is 
+not found for API version v1beta, or is 
+not supported for generateContent. Call 
+ListModels to see the list of available 
+models and their supported 
+methods.","status":"NOT_FOUND"}}
+[FAIL] models/gemini-1.5-flash: {"error":
+{"code":404,"message":"models/gemini-1.5-
+flash is not found for API version 
+v1beta, or is not supported for 
+generateContent. Call ListModels to see 
+the list of available models and their 
+supported 
+methods.","status":"NOT_FOUND"}}
