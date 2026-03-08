@@ -17,11 +17,6 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Green Bond Protocol - Institutional Asset Tokenization",
   description: "Tokenize green bonds, verify with AI, enforce cross-chain.",
-  icons: {
-    icon: "/icon.png",
-    shortcut: "/icon.png",
-    apple: "/icon.png",
-  },
 };
 
 export default function RootLayout({
