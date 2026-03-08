@@ -16,6 +16,11 @@ import {
 export default function Home() {
   const { isConnected, address } = useAccount();
   const publicClient = usePublicClient();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [assetType, setAssetType] = useState('bond');
   const [assetId, setAssetId] = useState('');
@@ -119,9 +124,15 @@ export default function Home() {
           toBlock: 'latest',
         });
 
+        if (!address) {
+          clearInterval(pollInterval);
+          return;
+        }
+
         // Find an AssetMinted event for our address
         for (const log of logs) {
-          if ((log.args as any)?.owner?.toLowerCase() === address?.toLowerCase()) {
+          const owner = (log.args as any)?.owner;
+          if (owner && address && owner.toLowerCase() === address.toLowerCase()) {
             setNftTokenId(((log.args as any).tokenId as bigint).toString());
             clearInterval(pollInterval);
             break;
@@ -191,13 +202,17 @@ export default function Home() {
     }
   };
 
-  const handleMintNFT = () => {
-    if (!verificationResult) return;
+  const handleMintNFT = async () => {
+    if (!verificationResult || !address) {
+      alert("Please connect your wallet first.");
+      return;
+    }
 
     writeMint({
-      address: UNIQUE_RWA_ADDRESS as `0x${string}`,
+      address: UNIQUE_RWA_ADDRESS,
       abi: UNIQUE_RWA_ABI,
       functionName: 'requestMint',
+      account: address, // Explicitly pass the from address
       args: [
         [documentText, assetType, assetId],  // string[] args for Chainlink Functions JS source
         verificationResult.documentUri,       // tokenUri
@@ -206,8 +221,11 @@ export default function Home() {
     });
   };
 
-  const handleBridge = () => {
-    if (!verificationResult) return;
+  const handleBridge = async () => {
+    if (!verificationResult || !address) {
+      alert("Please connect your wallet first.");
+      return;
+    }
 
     const verificationData = JSON.stringify({
       documentHash: verificationResult.documentHash,
@@ -218,17 +236,19 @@ export default function Home() {
     });
 
     writeBridge({
-      address: CROSS_CHAIN_RWA_ADDRESS as `0x${string}`,
+      address: CROSS_CHAIN_RWA_ADDRESS,
       abi: CROSS_CHAIN_RWA_ABI,
       functionName: 'sendCrossChainVerification',
+      account: address, // Explicitly pass the from address
       args: [
         ARBITRUM_SEPOLIA_CHAIN_SELECTOR,
-        CROSS_CHAIN_RECEIVER_ADDRESS as `0x${string}`,
+        CROSS_CHAIN_RECEIVER_ADDRESS,
         verificationData,
       ],
       value: parseEther('0.01'),  // ETH to cover CCIP router fees
     });
   };
+
 
   // ──── Helpers ────
 
@@ -330,15 +350,15 @@ export default function Home() {
 
               <button
                 type="submit"
-                disabled={!isConnected || isVerifying}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-xl border ${!isConnected
+                disabled={!mounted || !isConnected || isVerifying}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-xl border ${!mounted || !isConnected
                   ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
                   : isVerifying
                     ? 'bg-blue-600/50 border-blue-500/30 text-white cursor-wait backdrop-blur-sm'
                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-blue-500/50 text-white shadow-blue-900/40 hover:shadow-blue-500/30 hover:-translate-y-0.5'
                   }`}
               >
-                {!isConnected ? 'Wallet Not Connected' : (isVerifying ? 'Verifying with Chainlink AI...' : 'Verify & Tokenize on Chain')}
+                {!mounted ? 'Initializing...' : !isConnected ? 'Wallet Not Connected' : (isVerifying ? 'Verifying with Chainlink AI...' : 'Verify & Tokenize on Chain')}
               </button>
             </form>
           </div>
