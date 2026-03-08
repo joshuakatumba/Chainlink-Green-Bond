@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, decodeEventLog } from 'viem';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { parseEther, decodeEventLog, keccak256, toHex, encodePacked } from 'viem';
 import {
   UNIQUE_RWA_ABI,
   UNIQUE_RWA_ADDRESS,
@@ -14,13 +14,15 @@ import {
 } from './contracts';
 
 export default function Home() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const publicClient = usePublicClient();
 
   const [assetType, setAssetType] = useState('bond');
   const [assetId, setAssetId] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [nftTokenId, setNftTokenId] = useState<string | null>(null);
 
   // ──── Mint NFT (ERC-721) ────
   const {
@@ -32,7 +34,7 @@ export default function Home() {
     reset: resetMint,
   } = useWriteContract();
 
-  const { isLoading: isMintConfirming, isSuccess: isMintConfirmed } =
+  const { isLoading: isMintConfirming, isSuccess: isMintConfirmed, data: mintReceipt } =
     useWaitForTransactionReceipt({ hash: mintTxHash });
 
   // ──── Bridge to Arbitrum (CCIP) ────
@@ -68,6 +70,71 @@ export default function Home() {
     }
   }
 
+  // Extract requestId from the mint transaction (VerificationRequested event)
+  let mintRequestId: string | null = null;
+  if (mintReceipt) {
+    for (const log of mintReceipt.logs) {
+      try {
+        const decoded = decodeEventLog({
+          abi: UNIQUE_RWA_ABI,
+          data: log.data,
+          topics: log.topics,
+          eventName: 'VerificationRequested'
+        });
+        if (decoded.eventName === 'VerificationRequested') {
+          mintRequestId = (decoded.args as any).requestId;
+          break;
+        }
+      } catch (e) {
+        // Not the event
+      }
+    }
+
+    // Mint is async — requestMint only sends a Chainlink Functions request.
+    // The NFT is minted later when the DON calls fulfillRequest.
+    if (mintReceipt.status === 'success' && nftTokenId === null) {
+      setNftTokenId("Pending (Async Minting)");
+    }
+  }
+
+  // Poll for AssetMinted event (the actual NFT mint from DON callback)
+  useEffect(() => {
+    if (!publicClient || !isMintConfirmed || !mintReceipt || nftTokenId !== "Pending (Async Minting)") return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const logs = await publicClient.getLogs({
+          address: UNIQUE_RWA_ADDRESS as `0x${string}`,
+          event: {
+            type: 'event',
+            name: 'AssetMinted',
+            inputs: [
+              { name: 'tokenId', type: 'uint256', indexed: true },
+              { name: 'owner', type: 'address', indexed: false },
+              { name: 'tokenUri', type: 'string', indexed: false },
+              { name: 'documentHash', type: 'bytes32', indexed: false },
+            ]
+          },
+          fromBlock: mintReceipt.blockNumber,
+          toBlock: 'latest',
+        });
+
+        // Find an AssetMinted event for our address
+        for (const log of logs) {
+          if ((log.args as any)?.owner?.toLowerCase() === address?.toLowerCase()) {
+            setNftTokenId(((log.args as any).tokenId as bigint).toString());
+            clearInterval(pollInterval);
+            break;
+          }
+        }
+      } catch (e) {
+        // Polling error, will retry
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [publicClient, isMintConfirmed, mintReceipt, nftTokenId, address]);
+
   // ──── Handlers ────
 
   const handleTokenize = async (e: React.FormEvent) => {
@@ -79,6 +146,7 @@ export default function Home() {
 
     setIsVerifying(true);
     setVerificationResult(null);
+    setNftTokenId(null);
     resetMint();
     resetBridge();
 
@@ -97,12 +165,22 @@ export default function Home() {
 
       const data = await response.json();
 
+      // Compute real SHA-256 hash of the document
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(documentText));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const documentHash = '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Use a deterministic mock IPFS URI based on the hash
+      const documentUri = `ipfs://bafybei${documentHash.slice(2, 50)}`;
+
       setVerificationResult({
         success: data.isValid,
-        documentHash: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-        documentUri: 'ipfs://bafybeicg2uoyrtxb5uclc4v6wz7i...',
+        documentHash,
+        documentUri,
         aiConfidence: data.confidenceScore || 0,
-        signature: '0x' + Array.from({ length: 130 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
+        summary: data.summary || '',
+        reasoning: data.reasoning || '',
       });
       setIsVerifying(false);
 
@@ -148,7 +226,7 @@ export default function Home() {
         CROSS_CHAIN_RECEIVER_ADDRESS as `0x${string}`,
         verificationData,
       ],
-      value: parseEther('0.01'), // CCIP fee estimate in native ETH
+      value: parseEther('0.01'),  // ETH to cover CCIP router fees
     });
   };
 
@@ -325,9 +403,9 @@ export default function Home() {
 
                   <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-5 space-y-4 font-mono text-xs text-slate-400 overflow-x-auto shadow-inner relative">
                     <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-emerald-500 rounded-l-2xl"></div>
-                    <div><span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">Document Hash</span> <span className="text-blue-300 bg-blue-950/30 px-2 py-1 rounded inline-block border border-blue-900/30">{verificationResult.documentHash}</span></div>
-                    <div><span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">IPFS URI</span> <span className="text-slate-300 bg-slate-900/50 px-2 py-1 rounded inline-block border border-white/5">{verificationResult.documentUri}</span></div>
-                    <div><span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">Oracle Signature</span> <span className="text-purple-400 break-all bg-purple-950/20 px-2 py-1 rounded inline-block border border-purple-900/30">{verificationResult.signature}</span></div>
+                    <div><span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">Document Hash (SHA-256)</span> <span className="text-blue-300 bg-blue-950/30 px-2 py-1 rounded inline-block border border-blue-900/30 break-all">{verificationResult.documentHash}</span></div>
+                    <div><span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">IPFS URI</span> <span className="text-slate-300 bg-slate-900/50 px-2 py-1 rounded inline-block border border-white/5 break-all">{verificationResult.documentUri}</span></div>
+                    {verificationResult.summary && <div><span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">AI Summary</span> <span className="text-purple-400 bg-purple-950/20 px-2 py-1 rounded inline-block border border-purple-900/30">{verificationResult.summary}</span></div>}
                   </div>
 
                   {/* ──── Mint NFT Button ──── */}
@@ -343,7 +421,7 @@ export default function Home() {
                         }`}
                     >
                       {isMintConfirmed ? (
-                        <><svg className="w-5 h-5 mr-2 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> NFT Mint Requested</>
+                        <><svg className="w-5 h-5 mr-2 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Verification Request Sent ✓</>
                       ) : isMintConfirming ? (
                         <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Confirming Transaction...</>
                       ) : isMintPending ? (
@@ -354,18 +432,72 @@ export default function Home() {
                     </button>
                   </div>
 
-                  {/* Mint tx hash */}
+                  {/* Mint tx hash & Wallet Import Info */}
                   {mintTxHash && (
-                    <div className="text-[11px] font-mono text-slate-500 text-center bg-slate-950/30 py-2 rounded-lg border border-white/5">
-                      TX:{' '}
-                      <a
-                        href={`https://sepolia.etherscan.io/tx/${mintTxHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        {shortenHash(mintTxHash)}
-                      </a>
+                    <div className="flex flex-col gap-2">
+                      <div className="text-[11px] font-mono text-slate-500 text-center bg-slate-950/30 py-2 rounded-lg border border-white/5">
+                        TX:{' '}
+                        <a
+                          href={`https://sepolia.etherscan.io/tx/${mintTxHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {shortenHash(mintTxHash)}
+                        </a>
+                      </div>
+
+                      {nftTokenId && (
+                        <div className="bg-slate-900/80 border border-blue-500/20 rounded-xl p-4 mt-2 animate-in fade-in slide-in-from-top-2">
+                          {nftTokenId === "Pending (Async Minting)" ? (
+                            <div className="text-center">
+                              <div className="flex items-center justify-center text-amber-400 mb-2">
+                                <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span className="text-xs font-bold uppercase tracking-wider">Awaiting Chainlink DON Callback</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500">Your verification request was sent to the Chainlink Functions DON. The NFT will be minted once AI verification completes (~2-5 min). This page is polling for the result.</p>
+                            </div>
+                          ) : (
+                            <>
+                              <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 flex items-center">
+                                <svg className="w-4 h-4 mr-1.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                                NFT Minted! Add to Wallet
+                              </h5>
+
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center bg-slate-950/50 p-2 rounded-md border border-white/5">
+                                  <span className="text-xs text-slate-500">Contract Address</span>
+                                  <div className="flex items-center">
+                                    <span className="font-mono text-xs text-blue-300 mr-2">{shortenHash(UNIQUE_RWA_ADDRESS)}</span>
+                                    <button
+                                      onClick={() => navigator.clipboard.writeText(UNIQUE_RWA_ADDRESS as string)}
+                                      className="text-slate-500 hover:text-white transition-colors"
+                                      title="Copy Address"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-between items-center bg-slate-950/50 p-2 rounded-md border border-white/5">
+                                  <span className="text-xs text-slate-500">Token ID</span>
+                                  <div className="flex items-center">
+                                    <span className="font-mono text-xs text-emerald-300 mr-2">{nftTokenId}</span>
+                                    <button
+                                      onClick={() => navigator.clipboard.writeText(nftTokenId || "")}
+                                      className="text-slate-500 hover:text-white transition-colors"
+                                      title="Copy Token ID"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-slate-500 mt-3 text-center">Open MetaMask → NFTs tab → Import NFT using the contract address and token ID above.</p>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
