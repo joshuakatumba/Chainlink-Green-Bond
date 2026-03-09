@@ -18,7 +18,15 @@ The Green Bond Protocol solves this by:
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## � Live Deployment & Why We Chose Vercel
+
+**🔗 Live App:** [chainlink-green-bond-2sku.vercel.app](https://chainlink-green-bond-2sku.vercel.app)
+
+While the application can run locally, we deployed the frontend on Vercel because the **Chainlink Decentralized Oracle Network (DON)** required a publicly accessible web environment. Specifically, after the NFT is minted, the DON needs to send the generated **Token ID** and **Contract Address** back to the application so that users can seamlessly import the newly minted NFT directly into their MetaMask wallets. This critical callback functionality could not work locally on `localhost`.
+
+---
+
+## �🏗️ Architecture & Tech Stack
 
 This project is a full-stack Web3 application:
 
@@ -44,7 +52,35 @@ All fees are securely collected and managed entirely on-chain.
 
 ---
 
-## �📹 Video Walkthrough
+## 🔄 Protocol Workflow & Transactions
+
+Here is exactly how a user interacts with the protocol to tokenize a real-world investment:
+
+1. **Asset Input:** The user comes to our platform and inputs their details. They select the asset type they want to tokenize (like a legal agreement) and enter their unique ID. Next, they paste the details of their real-world document directly into the text field so it can be analyzed by Gemini AI.
+2. **AI Verification:** In the background, our AI—powered by **Gemini**—analyzes the document details to ensure everything is legitimate. Once Gemini verifies the data, it generates a standardized document, uploading it to get a secure **IPFS URL** and a **Hash** for the document.
+3. **Verification Fee:** The user clicks **'Pay Verification Fee'**. This powers our protocol's business model. A small fee of `0.001 ETH` is sent directly to our `ProtocolTreasury` smart contract.
+4. **Minting Process:** With the fee paid, MetaMask asks the user to confirm the transaction and pay the network gas fees. Once confirmed, we proceed to mint the NFT.
+5. **Smart Contract Execution:** Behind the scenes, this calls the `requestMint` function on our `UniqueRWA` smart contract. The contract takes the IPFS URL and the verified document hash, and seamlessly sends a request to the **Chainlink Decentralized Oracle Network (DON)**.
+6. **DON Consensus:** The DON picks up our request, reaches out to our Gemini AI, and fetches its verification result. Our `fulfillRequest` function receives this consensus. Because the consensus is valid (encoded as a `'1'`), the smart contract confidently **mints the secure NFT** to the user's wallet!
+   - 🔗 **[Placeholder: Etherscan Transaction for NFT Mint]** *(User: Add Etherscan link here)*
+
+Now that the NFT is securely minted on our primary blockchain, the user can bridge this asset to another network:
+
+7. **Cross-Chain Bridge:** The user clicks the bridge button. MetaMask pops up again, and the user pays the network gas fee, which automatically includes the exact fee required by **Chainlink CCIP**.
+8. **CCIP Routing:** This click calls the `sendCrossChainVerification` function on our `CrossChainRWA` smart contract. The contract packages our verified asset data into a secure message.
+9. **Destination Chain:** Chainlink CCIP takes over, securely locking our data on this side and transmitting the verified state to our destination chain (e.g., Arbitrum). This opens up global liquidity without compromising security.
+   - 🔗 **[Placeholder: Etherscan Transaction for CCIP Request]** *(User: Add Etherscan link here)*
+   - 🔗 **[Placeholder: Chainlink CCIP Explorer Transfer Link]** *(User: Add CCIP explorer link here)*
+
+### 💻 CRE Workflows Terminal Output
+*(User: Insert the CRE workflows executed in the terminal below)*
+```bash
+# Placeholder: Insert CRE workflow terminal logs here
+```
+
+---
+
+## � Video Presentation & Walkthrough
 
 *(User: Insert your 3-5 minute YouTube/Vimeo link here showcasing the workflow execution!)*
 👉 **[https://youtu.be/65awUP1RYjQ](#)**
