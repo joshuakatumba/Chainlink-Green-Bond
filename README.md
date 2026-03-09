@@ -47,7 +47,7 @@ All fees are securely collected and managed entirely on-chain.
 ## �📹 Video Walkthrough
 
 *(User: Insert your 3-5 minute YouTube/Vimeo link here showcasing the workflow execution!)*
-👉 **[Watch the Demo Video Here](#)**
+👉 **[https://youtu.be/65awUP1RYjQ](#)**
 
 ---
 
@@ -98,7 +98,3 @@ Simulates and automates the RWA verification business logic off-chain before com
 
 ---
 
-## 🏆 Hackathon Tracks Addressed
-- **Cross-Chain:** Utilizing CCIP for RWA mobility.
-- **AI Integration:** Using Chainlink Functions to bring Google Gemini's analysis on-chain.
-- **CRE Workflow:** Demonstrating an end-to-end automation simulation using `rwa-verification.ts`.
