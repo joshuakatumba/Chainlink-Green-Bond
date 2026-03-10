@@ -14,7 +14,6 @@
 import { ethers } from "ethers";
 
 // Mock environment variables for simulation
-const BACKEND_URL = "http://localhost:3001/api/verify-rwa";
 const ASSET_ID = "CUSIP-U652199-MOCK";
 const DOCUMENT_TEXT = "This represents a mock legal agreement for a US Treasury Bond...";
 
