@@ -64,7 +64,7 @@ Here is exactly how a user interacts with the protocol to tokenize a real-world 
 6. **DON Consensus:** The DON picks up our request, reaches out to our Gemini AI, and fetches its verification result. Our `fulfillRequest` function receives this consensus. Because the consensus is valid (encoded as a `'1'`), the smart contract confidently **mints the secure NFT** to the user's wallet!
    - 🔗 **[Etherscan Transaction for NFT Mint]** *0xc81a8ed2227823fbd6e18084cb40f1b8d6c0344f9db0d8a4883635f76c3f2655*
 
-   NFT Minted: https://sepolia.etherscan.io/tx/0xc81a8ed2227823fbd6e18084cb40f1b8d6c0344f9db0d8a4883635f76c3f2655
+  **NFT Minted: https://sepolia.etherscan.io/tx/0xc81a8ed2227823fbd6e18084cb40f1b8d6c0344f9db0d8a4883635f76c3f2655**
    
 
 Now that the NFT is securely minted on our primary blockchain, the user can bridge this asset to another network:
@@ -76,14 +76,29 @@ Now that the NFT is securely minted on our primary blockchain, the user can brid
    - 🔗 **[Chainlink CCIP Explorer Transfer Link]** *0xd9df13fec8a4bb073ba76566df94a60ef2e77e3ebad6dae8fd6188567d7bf6bb*
 
 ### 💻 CRE Workflows Terminal Output
-*(User: Insert the CRE workflows executed in the terminal below)*
-```bash
-# Placeholder: Insert CRE workflow terminal logs here
+
+run npx tsx cre workflow simulate rwa-verification.ts
+  Starting RWA Verification Workflow...
+📡 Requesting AI Verification for Asset: CUSIP-U652199-MOCK...
+✅ AI Verification Completed.  
+🤖 Confidence Score: 98.0%     
+⚖️  Evaluating Business Logic....
+✅ Conditions Met: Confidence Threshold Passed.
+🔐 Preparing Blockchain Proposal...
+📦 Encoded Calldata Generated: 
+0x1dc559d9000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000001c0ae2fa8504e7f90a6838599748a6e53ea8c9fc745e410379bb9c4139cca23fb940000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000405468697320726570726573656e74732061206d6f636b206c6567616c2061677265656d656e7420666f72206120555320547265617375727920426f6e642e2e2e000000000000000000000000000000000000000000000000000000000000000473356c7874376b33336832623273377a3574363270696634000000000000000000000000000000000000000000000000000000000000
+
+--- SIMULATION SUCCESS ---
+Asset CUSIP-U652199-MOCK is ready to be tokenized on Sepolia.
+
+
+
+
 ```
 
 ---
 
-## � Video Presentation & Walkthrough
+##  Video Presentation & Walkthrough
 
 *(User: Insert your 3-5 minute YouTube/Vimeo link here showcasing the workflow execution!)*
 👉 **[https://youtu.be/65awUP1RYjQ](#)**
@@ -98,17 +113,17 @@ Here are the specific files where Chainlink is implemented:
 
 ### 1. Chainlink Functions (AI Verification)
 Used to reach out to our Next.js/Gemini backend to verify the legal documents before minting.
-- 📄 **Smart Contract:** [`contracts/src/UniqueRWA.sol`](./contracts/src/UniqueRWA.sol) - Inherits `FunctionsClient` and uses `FunctionsRequest` to send the payload to the DON.
-- 📄 **Off-chain Backend script:** [`backend/updateSource.js`](./backend/updateSource.js) - The JavaScript code that the Chainlink DON executes to call the Gemini API.
+- 📄 **Smart Contract:** [`https://github.com/joshuakatumba/Chainlink-Green-Bond/blob/main/contracts/src/UniqueRWA.sol`](./contracts/src/UniqueRWA.sol) - Inherits `FunctionsClient` and uses `FunctionsRequest` to send the payload to the DON.
+- 📄 **Off-chain Backend script:** [`https://github.com/joshuakatumba/Chainlink-Green-Bond/blob/main/backend/updateSource.js`](./backend/updateSource.js) - The JavaScript code that the Chainlink DON executes to call the Gemini API.
 
 ### 2. Chainlink CCIP (Cross-Chain Transfers)
 Allows the verified RWA NFTs to be bridged securely from the origin chain to destination chains.
-- 📄 **Sender Contract:** [`contracts/src/CrossChainRWA.sol`](./contracts/src/CrossChainRWA.sol) - Sends CCIP messages to remote networks.
-- 📄 **Receiver Contract:** [`contracts/src/CrossChainReceiver.sol`](./contracts/src/CrossChainReceiver.sol) - Receives and processes the CCIP messages on the destination chain.
+- 📄 **Sender Contract:** [`https://github.com/joshuakatumba/Chainlink-Green-Bond/blob/main/contracts/src/CrossChainRWA.sol`](./contracts/src/CrossChainRWA.sol) - Sends CCIP messages to remote networks.
+- 📄 **Receiver Contract:** [`https://github.com/joshuakatumba/Chainlink-Green-Bond/blob/main/contracts/src/CrossChainReceiver.sol`](./contracts/src/CrossChainReceiver.sol) - Receives and processes the CCIP messages on the destination chain.
 
 ### 3. Chainlink Runtime Environment (CRE)
 Simulates and automates the RWA verification business logic off-chain before committing to the blockchain.
-- 📄 **Workflow Script:** [`workflows/rwa-verification.ts`](./workflows/rwa-verification.ts) - The CRE workflow that integrates the AI verification API and formats the Calldata for the blockchain transaction.
+- 📄 **Workflow Script:** [`https://github.com/joshuakatumba/Chainlink-Green-Bond/blob/main/workflows/rwa-verification.ts`](./workflows/rwa-verification.ts) - The CRE workflow that integrates the AI verification API and formats the Calldata for the blockchain transaction.
 - 📄 **Project Config:** [`project.yaml`](./project.yaml)
 
 ---
@@ -127,13 +142,43 @@ Simulates and automates the RWA verification business logic off-chain before com
    npm install
    npm run dev
    ```
-   *(Ensure you have your `.env` configured with `GEMINI_API_KEY` and contract addresses).*
 
 3. **CRE Simulation:**
-   Run the institutional workflow simulation using the CRE CLI:
-   ```bash
-   cre workflow simulate workflows/rwa-verification.ts
-   ```
+   Run the institutional workflow simulation using the CRE CLI: for my-workflow
 
+  
+   ✓ Workflow compiled
+2026-03-10T12:11:47Z [SIMULATION] Simulator Initialized
+
+2026-03-10T12:11:47Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+2026-03-10T12:11:47Z [USER LOG] Running CronTrigger for supply APY rebalance
+2026-03-10T12:11:47Z [USER LOG] Reading supply APYs...
+2026-03-10T12:11:47Z [USER LOG] Reading APY for chain ethereum-testnet-sepolia | pool 0xBBccb575c318C786E6129d9F8C6C71F0Aea4dF06 | asset 0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05
+2026-03-10T12:11:47Z [USER LOG] Reserve data [ethereum-testnet-sepolia] currentLiquidityRate: 50000000000000000000000000
+2026-03-10T12:11:47Z [USER LOG] Balance in pool [ethereum-testnet-sepolia]: 2000000000000000000
+2026-03-10T12:11:47Z [USER LOG] Supply yield [ethereum-testnet-sepolia] APY%: 5.127110, APR%: 5.000000
+2026-03-10T12:11:47Z [USER LOG] Reading APY for chain ethereum-testnet-sepolia-base-1 | pool 0xecb405a1b8e78Bf84419cD007E833C61F77Cc54F | asset 0x88A2d74F47a237a62e7A51cdDa67270CE381555e
+2026-03-10T12:11:48Z [USER LOG] Reserve data [ethereum-testnet-sepolia-base-1] currentLiquidityRate: 60000000000000000000000000  
+2026-03-10T12:11:48Z [USER LOG] Balance in pool [ethereum-testnet-sepolia-base-1]: 0  
+2026-03-10T12:11:48Z [USER LOG] Supply yield [ethereum-testnet-sepolia-base-1] APY%: 6.183655, APR%: 6.000000
+2026-03-10T12:11:48Z [USER LOG] Found best APY: 0.06183654654535964 on chain ethereum-testnet-sepolia-base-1
+2026-03-10T12:11:48Z [USER LOG] Rebalancing from ethereum-testnet-sepolia -> ethereum-testnet-sepolia-base-1 (selector 10344971235874465080)
+2026-03-10T12:11:49Z [USER LOG] Rebalancing supply from ethereum-testnet-sepolia to ethereum-testnet-sepolia-base-1 | balance=2000000000000000000
+2026-03-10T12:11:52Z [USER LOG] Write report transaction succeeded on ethereum-testnet-sepolia txHash: 0x0000000000000000000000000000000000000000000000000000000000000000   
+2026-03-10T12:11:52Z [USER LOG] Rebalancing complete | Old balance: 0 | New balance: 2000000000000000000 | Amount rebalanced: 2000000000000000000 | Chain: ethereum-testnet-sepolia-base-1
+
+✓ Workflow Simulation Result:
+""
+
+2026-03-10T12:11:52Z [SIMULATION] Execution finished signal received
+2026-03-10T12:11:52Z [SIMULATION] Skipping WorkflowEngineV2
+
+╭──────────────────────────────────────────────────────╮
+│ Simulation complete! Ready to deploy your workflow?  │
+────────────╯
+
+
+--- SIMULATION SUCCESS ---
+Asset CUSIP-U652199-MOCK is ready to be tokenized on Sepolia.
 ---
 
