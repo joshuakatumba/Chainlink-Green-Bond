@@ -1,2 +1,11 @@
-name: rwa-verification
-entry-point: ./workflows/rwa-verification.ts
+staging-settings:
+  user-workflow:
+    workflow-name: "rwa-verification"
+  workflow-artifacts:
+    workflow-path: "./workflows/rwa-verification.ts"
+
+production-settings:
+  user-workflow:
+    workflow-name: "rwa-verification"
+  workflow-artifacts:
+    workflow-path: "./workflows/rwa-verification.ts"

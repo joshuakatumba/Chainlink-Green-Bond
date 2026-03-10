@@ -62,15 +62,18 @@ Here is exactly how a user interacts with the protocol to tokenize a real-world 
 4. **Minting Process:** With the fee paid, MetaMask asks the user to confirm the transaction and pay the network gas fees. Once confirmed, we proceed to mint the NFT.
 5. **Smart Contract Execution:** Behind the scenes, this calls the `requestMint` function on our `UniqueRWA` smart contract. The contract takes the IPFS URL and the verified document hash, and seamlessly sends a request to the **Chainlink Decentralized Oracle Network (DON)**.
 6. **DON Consensus:** The DON picks up our request, reaches out to our Gemini AI, and fetches its verification result. Our `fulfillRequest` function receives this consensus. Because the consensus is valid (encoded as a `'1'`), the smart contract confidently **mints the secure NFT** to the user's wallet!
-   - 🔗 **[Placeholder: Etherscan Transaction for NFT Mint]** *(User: Add Etherscan link here)*
+   - 🔗 **[Etherscan Transaction for NFT Mint]** *0xc81a8ed2227823fbd6e18084cb40f1b8d6c0344f9db0d8a4883635f76c3f2655*
+
+   NFT Minted: https://sepolia.etherscan.io/tx/0xc81a8ed2227823fbd6e18084cb40f1b8d6c0344f9db0d8a4883635f76c3f2655
+   
 
 Now that the NFT is securely minted on our primary blockchain, the user can bridge this asset to another network:
 
 7. **Cross-Chain Bridge:** The user clicks the bridge button. MetaMask pops up again, and the user pays the network gas fee, which automatically includes the exact fee required by **Chainlink CCIP**.
 8. **CCIP Routing:** This click calls the `sendCrossChainVerification` function on our `CrossChainRWA` smart contract. The contract packages our verified asset data into a secure message.
 9. **Destination Chain:** Chainlink CCIP takes over, securely locking our data on this side and transmitting the verified state to our destination chain (e.g., Arbitrum). This opens up global liquidity without compromising security.
-   - 🔗 **[Placeholder: Etherscan Transaction for CCIP Request]** *(User: Add Etherscan link here)*
-   - 🔗 **[Placeholder: Chainlink CCIP Explorer Transfer Link]** *(User: Add CCIP explorer link here)*
+   - 🔗 **[Etherscan Transaction for CCIP Request]** *0x39831f0461a9873472850bf1cd76343590f297b4251c531f8db67668be64d371*
+   - 🔗 **[Chainlink CCIP Explorer Transfer Link]** *0xd9df13fec8a4bb073ba76566df94a60ef2e77e3ebad6dae8fd6188567d7bf6bb*
 
 ### 💻 CRE Workflows Terminal Output
 *(User: Insert the CRE workflows executed in the terminal below)*
